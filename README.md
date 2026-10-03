@@ -5,7 +5,7 @@ A Claude Code plugin that asks Jev (TypeSafe's decision model) at six points: fo
 | Script | Runs on | Does |
 |---|---|---|
 | `permission.ts` | PermissionRequest (Bash, WebFetch, MCP) | Bash: allow at >=0.9 safe, <=0.1 destructive, >=0.9 on-task; deny at >=0.9 destructive; a static list (rm -rf, push, sudo, deploys, secrets, pipe-to-shell, file uploads, `find -delete`, `npx`-style fetch-and-run) is never auto-approved. WebFetch/MCP: allow clear read-only calls (on-task too, for WebFetch); never deny — an MCP request carries no statement of what the user asked for, so there is no off-task signal to deny on. |
-| `injection.ts` | PostToolUse (WebFetch, WebSearch, MCP except codegraph) | At >=0.8, tells Claude and the auto-mode classifier that the result contains text addressed to an agent. |
+| `injection.ts` | PostToolUse (WebFetch, WebSearch, MCP except codegraph, and Bash commands that download: `curl`, `wget`, `gh api`, …) | At >=0.8, tells Claude and the auto-mode classifier that the result contains text addressed to an agent. |
 | `done-check.ts` | Stop | After edits in a turn: continues once if the answer claims checks pass with no check run after the last edit, or reads as done while leaving stubs. |
 | `prompt-nudge.ts` | UserPromptSubmit | Large/risky requests: plan first. Vague ones (>=0.9): ask first. Skips slash commands and replies under 3 words. |
 | `turn.ts` | the jev-route module (below) | Effort per turn, the session's model, and a subagent's model. Owns the questions and the 0.7 confidence bar. |
@@ -72,7 +72,7 @@ chars. It records the Bash commands the permission hook judged, so it is 0600 in
 ## What leaves the machine
 
 Every Bash command and WebFetch/MCP input that reaches a permission prompt, every
-WebFetch/WebSearch/MCP result over 200 characters (clipped to 12k), each prompt with the assistant
+WebFetch/WebSearch/MCP result, and Bash output from a command that downloads, over 200 characters (clipped to 12k), each prompt with the assistant
 reply it answers (clipped to 3k, for jev-route), each general-purpose subagent's task, and each final
 answer from a turn that edited files — all to the configured provider. codegraph is excluded from the injection
 matcher by a negative lookahead: it returns the machine's own source, it is the highest-volume MCP

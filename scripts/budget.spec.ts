@@ -5,7 +5,7 @@ import hooks from "../hooks/hooks.json"
 // script's Jev budget leaves a second for bun startup, stdin and output.
 test("every hook's Jev budget fits under its timeout", async () => {
   const entries = Object.values(hooks.hooks).flat().flatMap((m) => m.hooks)
-  expect(entries).toHaveLength(4)
+  expect(entries).toHaveLength(5)
   for (const { command, timeout } of entries) {
     const script = command.match(/scripts\/([\w-]+\.ts)/)![1]
     const { BUDGET_MS } = await import(`./${script}`)

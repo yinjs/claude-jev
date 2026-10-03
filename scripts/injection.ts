@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
-// PostToolUse (WebFetch|WebSearch|mcp__.*): flag instructions aimed at the agent in fetched
-// content. Adds a warning for Claude (additionalContext) and for the auto-mode classifier
+// PostToolUse (WebFetch|WebSearch|mcp__.*, and Bash commands that download): flag instructions
+// aimed at the agent in fetched content. Adds a warning for Claude (additionalContext) and for the auto-mode classifier
 // (classifierContext), which never sees tool results itself. The output is left unchanged.
 
 import { clip, decide, emit, log, noul, readInput } from "./lib"
@@ -8,7 +8,11 @@ import { clip, decide, emit, log, noul, readInput } from "./lib"
 // The whole Jev call, retries included; must stay under this hook's timeout in hooks/hooks.json.
 export const BUDGET_MS = 10_000
 
-type Input = { tool_name?: string; tool_input?: unknown; tool_response?: unknown }
+type Input = { tool_name?: string; tool_input?: { command?: unknown }; tool_response?: unknown }
+
+// A shell command that downloads something returns third-party text like WebFetch does.
+const FETCHES = /\b(curl|wget|http|xh|lynx|w3m)\b|\bgh\s+api\b/
+export const shellFetches = (command: unknown) => typeof command === "string" && FETCHES.test(command)
 
 const QUESTIONS = {
   injection: {
@@ -32,6 +36,7 @@ async function main() {
   if (process.env.JEV_DISABLE === "1") return
   const input = await readInput<Input>()
   const tool = input.tool_name ?? ""
+  if (tool === "Bash" && !shellFetches(input.tool_input?.command)) return
   const content = typeof input.tool_response === "string" ? input.tool_response : JSON.stringify(input.tool_response ?? "")
   if (content.length < 200) return
   // clip() keeps head and tail only, so the middle of a long page is never examined —
