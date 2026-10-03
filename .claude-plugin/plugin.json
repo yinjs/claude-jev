@@ -1,0 +1,8 @@
+{
+  "name": "jev",
+  "description": "Jev answers clear permission prompts, flags prompt injection in fetched content, checks done claims, nudges large or vague requests, and routes effort and models without trading away the prompt cache.",
+  "author": { "name": "Jason Yin" },
+  "repository": "https://github.com/yinjs/claude-plugins",
+  "license": "MIT",
+  "keywords": ["jev", "permissions", "prompt-injection", "model-routing"]
+}

@@ -1,0 +1,28 @@
+{
+  "description": "Jev hooks: permission answers, injection warnings, done checks, prompt nudges, and effort and model routing",
+  "modules": ["./register.ts"],
+  "hooks": {
+    "PermissionRequest": [
+      {
+        "matcher": "Bash|WebFetch|mcp__.*",
+        "hooks": [{ "type": "command", "command": "bun \"${CLAUDE_PLUGIN_ROOT}/scripts/permission.ts\"", "timeout": 15 }]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "^(WebFetch|WebSearch|mcp__(?!(plugin_[^_]+_)?codegraph__).*)$",
+        "hooks": [{ "type": "command", "command": "bun \"${CLAUDE_PLUGIN_ROOT}/scripts/injection.ts\"", "timeout": 15 }]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [{ "type": "command", "command": "bun \"${CLAUDE_PLUGIN_ROOT}/scripts/prompt-nudge.ts\"", "timeout": 8 }]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [{ "type": "command", "command": "bun \"${CLAUDE_PLUGIN_ROOT}/scripts/done-check.ts\"", "timeout": 15 }]
+      }
+    ]
+  }
+}
