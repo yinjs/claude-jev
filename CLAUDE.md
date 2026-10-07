@@ -15,6 +15,11 @@ question's wording, a threshold, or what gets scanned belongs in those repos too
 - Live check without spending a turn: `claude -p /jev-route`. With one, `claude -p … --output-format json`
   reports the model that actually answered under `modelUsage`.
 
+## Release
+
+- Bump `version` in `.claude-plugin/plugin.json` with every change users should get: installed copies
+  are cached by version, so an unbumped change never reaches them. Tag the commit `v<version>`.
+
 ## Hooks
 
 - Every failure changes nothing: print nothing, exit 0, log to `~/.cache/claude-jev/decisions.log`.
