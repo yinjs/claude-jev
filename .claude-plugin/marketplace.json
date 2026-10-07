@@ -1,0 +1,12 @@
+{
+  "name": "yinjs",
+  "owner": { "name": "Jason Yin" },
+  "description": "The jev Claude Code plugin.",
+  "plugins": [
+    {
+      "name": "jev",
+      "source": "./",
+      "description": "Jev answers clear permission prompts, flags prompt injection in fetched content, checks done claims, nudges large or vague requests, and routes effort and models without trading away the prompt cache."
+    }
+  ]
+}

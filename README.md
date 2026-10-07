@@ -24,7 +24,7 @@ Deny rules in settings still win over the permission hook.
 1. Install from the `yinjs` marketplace:
 
    ```sh
-   claude plugin marketplace add yinjs/agent-plugins
+   claude plugin marketplace add yinjs/claude-jev
    claude plugin install jev@yinjs
    ```
 
