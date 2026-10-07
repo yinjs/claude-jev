@@ -26,6 +26,21 @@ const QUESTIONS = {
   },
 }
 
+export function nudgeNote(large: number | undefined, vague: number | undefined): string | undefined {
+  // Phrased as facts, not commands: Claude Code's hooks reference warns that context framed as
+  // out-of-band system instructions can trip Claude's injection defenses and get surfaced to
+  // the user instead of being used.
+  if (large !== undefined && large >= 0.85)
+    return `Jev, the classifier these hooks call, rates this request p=${large.toFixed(2)} a large or risky ` +
+      "multi-step change. For changes of that size this setup expects a short plan, and the user's " +
+      "confirmation of its key decisions, before any edit."
+  if (vague !== undefined && vague >= 0.9)
+    return `Jev, the classifier these hooks call, rates this request p=${vague.toFixed(2)} as naming no ` +
+      "concrete thing to change and no concrete result. For requests like that this setup expects 1-3 " +
+      "focused questions to the user, or explicitly stated assumptions, before acting."
+  return undefined
+}
+
 async function main() {
   if (process.env.JEV_DISABLE === "1") return
   const { prompt = "" } = await readInput<Input>()
@@ -36,18 +51,7 @@ async function main() {
   const vague = noul(answers, "vague")
   const large = noul(answers, "large")
   log("prompt", { vague, large, words: text.split(/\s+/).length })
-  // Phrased as facts, not commands: Claude Code's hooks reference warns that context framed as
-  // out-of-band system instructions can trip Claude's injection defenses and get surfaced to
-  // the user instead of being used.
-  let note: string | undefined
-  if (large !== undefined && large >= 0.85)
-    note = `Jev, the classifier these hooks call, rates this request p=${large.toFixed(2)} a large or risky ` +
-      "multi-step change. For changes of that size this setup expects a short plan, and the user's " +
-      "confirmation of its key decisions, before any edit."
-  else if (vague !== undefined && vague >= 0.9)
-    note = `Jev, the classifier these hooks call, rates this request p=${vague.toFixed(2)} as naming no ` +
-      "concrete thing to change and no concrete result. For requests like that this setup expects 1-3 " +
-      "focused questions to the user, or explicitly stated assumptions, before acting."
+  const note = nudgeNote(large, vague)
   if (note) emit({ hookSpecificOutput: { hookEventName: "UserPromptSubmit", additionalContext: note } })
 }
 

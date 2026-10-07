@@ -73,21 +73,24 @@ function backoffMs(res: Response, deadline: number): number | undefined {
   return deadline - performance.now() - wait >= MIN_ATTEMPT_MS ? wait : undefined
 }
 
+// `via` is where the call goes; tests pass a provider and a fetch in place of the real ones.
 export async function decide(
   state: Record<string, unknown>,
   questions: Record<string, Question>,
   timeoutMs: number,
+  via: { provider?: ReturnType<typeof provider>; fetch?: typeof fetch } = { provider: PROVIDER, fetch },
 ): Promise<Record<string, Answer> | undefined> {
-  if (!PROVIDER) {
+  const { provider: target, fetch: send = fetch } = via
+  if (!target) {
     log("error", { error: `unknown JEV_PROVIDER ${process.env.JEV_PROVIDER}` })
     return undefined
   }
-  const key = PROVIDER.key
+  const key = target.key
   if (!key) {
     log("error", { error: "no API key" })
     return undefined
   }
-  const body = JSON.stringify({ model: PROVIDER.model, state, questions })
+  const body = JSON.stringify({ model: target.model, state, questions })
   // timeoutMs covers every attempt and the backoff between them, so a retry cannot push a
   // hook past its timeout in hooks/hooks.json.
   const t0 = performance.now()
@@ -101,7 +104,7 @@ export async function decide(
     if (left <= 0) break
     let res: Response
     try {
-      res = await fetch(PROVIDER.url, {
+      res = await send(target.url, {
         method: "POST",
         headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json", "X-Title": "Claude Code Jev hooks" },
         body,
