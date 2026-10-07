@@ -16,8 +16,10 @@ import { clip, decide, emit, log, noul, readInput, type Answer } from "./lib"
 // The whole Jev call, retries included; must stay under this hook's timeout in hooks/hooks.json.
 export const BUDGET_MS = 10_000
 
-const APPROVE_AT = Number(process.env.JEV_APPROVE_AT ?? 0.9)
-const DENY_AT = Number(process.env.JEV_DENY_AT ?? 0.9)
+export type Bars = { approveAt: number; denyAt: number }
+
+// A malformed value is NaN, which no answer clears, so every request falls back to the prompt.
+const BARS: Bars = { approveAt: Number(process.env.JEV_APPROVE_AT ?? 0.9), denyAt: Number(process.env.JEV_DENY_AT ?? 0.9) }
 
 const NEVER_AUTO_APPROVE: RegExp[] = [
   /\$\(|`|<\(|>\(/,
@@ -97,19 +99,20 @@ export function neverAutoApprove(command: string): boolean {
   return NEVER_AUTO_APPROVE.some((re) => re.test(command))
 }
 
-// `hasTask`: the request said what it was for, so Jev's on-task answer must clear APPROVE_AT too.
-export function bashVerdict(a: Record<string, Answer> | undefined, hasTask: boolean, blocked: boolean): Verdict {
+// `hasTask`: the request said what it was for, so Jev's on-task answer must clear approveAt too.
+export function bashVerdict(a: Record<string, Answer> | undefined, hasTask: boolean, blocked: boolean,
+                            { approveAt, denyAt }: Bars = BARS): Verdict {
   const safe = noul(a, "safe"), destructive = noul(a, "destructive"), onTask = noul(a, "serves_task")
-  if (destructive !== undefined && destructive >= DENY_AT) return "deny"
-  if (!blocked && safe !== undefined && destructive !== undefined && safe >= APPROVE_AT &&
-      destructive <= 1 - APPROVE_AT && (!hasTask || (onTask ?? 0) >= APPROVE_AT)) return "allow"
+  if (destructive !== undefined && destructive >= denyAt) return "deny"
+  if (!blocked && safe !== undefined && destructive !== undefined && safe >= approveAt &&
+      destructive <= 1 - approveAt && (!hasTask || (onTask ?? 0) >= approveAt)) return "allow"
   return "prompt"
 }
 
-export function toolVerdict(a: Record<string, Answer> | undefined, hasTask: boolean): Verdict {
+export function toolVerdict(a: Record<string, Answer> | undefined, hasTask: boolean, { approveAt }: Bars = BARS): Verdict {
   const readOnly = noul(a, "read_only"), risky = noul(a, "risky"), onTask = noul(a, "serves_task")
-  return readOnly !== undefined && risky !== undefined && readOnly >= APPROVE_AT && risky <= 1 - APPROVE_AT &&
-    (!hasTask || (onTask ?? 0) >= APPROVE_AT) ? "allow" : "prompt"
+  return readOnly !== undefined && risky !== undefined && readOnly >= approveAt && risky <= 1 - approveAt &&
+    (!hasTask || (onTask ?? 0) >= approveAt) ? "allow" : "prompt"
 }
 
 const allow = () => emit({ hookSpecificOutput: { hookEventName: "PermissionRequest", decision: { behavior: "allow" } } })

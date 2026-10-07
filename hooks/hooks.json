@@ -10,11 +10,7 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "^(WebFetch|WebSearch|mcp__(?!(plugin_[^_]+_)?codegraph__).*)$",
-        "hooks": [{ "type": "command", "command": "bun \"${CLAUDE_PLUGIN_ROOT}/scripts/injection.ts\"", "timeout": 15 }]
-      },
-      {
-        "matcher": "^Bash$",
+        "matcher": "^(Bash|WebFetch|WebSearch|mcp__(?!(plugin_[^_]+_)?codegraph__).*)$",
         "hooks": [{ "type": "command", "command": "bun \"${CLAUDE_PLUGIN_ROOT}/scripts/injection.ts\"", "timeout": 15 }]
       }
     ],

@@ -80,3 +80,11 @@ test("WebFetch/MCP: allows a confident read-only call, never denies", () => {
   expect(toolVerdict(a(0.5, 0.99), false)).toBe("prompt")
   expect(toolVerdict(undefined, false)).toBe("prompt")
 })
+
+test("JEV_APPROVE_AT / JEV_DENY_AT move the bars; a malformed value only prompts", () => {
+  const loose = { approveAt: 0.8, denyAt: 0.8 }
+  expect(bashVerdict(sure(0.85, 0.15), false, false, loose)).toBe("allow")
+  expect(bashVerdict(sure(0, 0.85), false, false, loose)).toBe("deny")
+  expect(bashVerdict(sure(1, 0), false, false, { approveAt: NaN, denyAt: NaN })).toBe("prompt")
+  expect(bashVerdict(sure(0, 1), false, false, { approveAt: NaN, denyAt: NaN })).toBe("prompt")
+})

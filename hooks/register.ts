@@ -25,13 +25,13 @@ const MODEL_IDS: Record<string, string> = { sonnet: 'claude-sonnet-5-5', opus: '
 // rebuild a pick causes stays small.
 const PIN_WHILE_MESSAGES = 8
 
-
+// Per-session state; resetSession() is the one place that sets its starting values.
 const pending = new Map<string, Promise<Decision>>()
 let pin: { model: string; base: string } | undefined
-let pinSettled = false
-let off = false
-let routed = ''
-let last = 'no turn yet this session'
+let pinSettled!: boolean
+let off!: boolean
+let routed!: string
+let last!: string
 
 async function judge($: EngineInterface, request: TurnRequest): Promise<Decision> {
   try {
@@ -53,6 +53,7 @@ function resetSession() {
   routed = ''
   last = 'no turn yet this session'
 }
+resetSession()
 
 async function modelId($: EngineInterface, tier: string): Promise<string | undefined> {
   const override =
