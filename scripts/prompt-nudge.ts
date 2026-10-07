@@ -9,7 +9,7 @@ export const BUDGET_MS = 6_000
 
 type Input = { prompt?: string }
 
-// Wordings tuned against live Jev (see the Hermes jev plugin): broad "underspecified?" questions
+// Wordings tuned against live Jev: broad "underspecified?" questions
 // scored everything ~0.5; the concrete-target test separates vague from specific requests.
 const QUESTIONS = {
   vague: {

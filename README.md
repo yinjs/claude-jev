@@ -1,6 +1,13 @@
 # jev
 
-A Claude Code plugin that asks Jev (TypeSafe's decision model) at six points: four event hooks and two routing decisions. Each makes one ~1 s call and changes nothing when Jev is unsure or unreachable.
+A Claude Code plugin that hands Claude Code's small, frequent decisions to [Jev](https://docs.typesafe.ai/concepts/system-one),
+TypeSafe's decision model: Jev reads a short state and answers typed questions (yes/no with a
+probability, or a choice with a confidence) in about a second, for a fraction of a cent. You get
+fewer permission prompts, a warning when fetched content addresses the agent, a second look at
+"done", and effort and model routing.
+
+It asks at six points: four event hooks and two routing decisions. Each makes one ~1 s call and
+changes nothing when Jev is unsure or unreachable.
 
 | Script | Runs on | Does |
 |---|---|---|
@@ -11,6 +18,22 @@ A Claude Code plugin that asks Jev (TypeSafe's decision model) at six points: fo
 | `turn.ts` | the jev-route module (below) | Effort per turn, the session's model, and a subagent's model. Owns the questions and the 0.7 confidence bar. |
 
 Deny rules in settings still win over the permission hook.
+
+## Limits
+
+Read these before letting the permission hook approve commands for you.
+
+- The static never-approve list is a backstop, not a sandbox. Anything it does not match, such as
+  `python3 -c "…"`, is allowed on Jev's judgment alone.
+- The bars (0.9 to approve, 0.8 to warn of injection) were tuned against live Jev.
+  They are not a guarantee; a command Jev misjudges is run without asking.
+- The injection warning is advice to Claude, never a block, and only the head and tail of a long
+  result (12k characters) are examined.
+- jev-route pins `claude-{sonnet,opus}-5-5`. When newer models ship, set
+  `ANTHROPIC_DEFAULT_{SONNET,OPUS}_MODEL` or wait for a release that bumps the ids.
+
+Use it at your own risk (see [LICENSE](LICENSE)). Report a security problem through a
+[private advisory](https://github.com/yinjs/claude-jev/security/advisories/new), not a public issue.
 
 ## Requirements
 
@@ -54,6 +77,12 @@ answers; only the URL, the key and the model id differ.
 `JEV_API_KEY`, when set, is used instead of the provider's key variable. An unknown `JEV_PROVIDER`,
 or no key, makes every hook change nothing and logs why. Portkey also proxies Jev, but only with
 your own TypeSafe key, so use `typesafe` directly.
+
+## Cost
+
+Jev 1.13 on OpenRouter costs $0.042 per million input tokens, with no charge for output (as listed
+in October 2026). The largest request these hooks send is about 3k tokens, so a call costs at most
+about $0.0002, and a day of heavy use, a few hundred calls, costs a few cents.
 
 ## Configuration
 
@@ -104,6 +133,8 @@ own model answered — so the module pins `claude-{sonnet,opus}-5-5`, or what
 ## Development
 
 How to test and change the plugin is in [CLAUDE.md](CLAUDE.md), which Claude Code loads too.
+`tsconfig.json` extends types Claude Code writes when it loads the plugin, so a fresh clone shows
+type errors until the plugin has loaded once (`claude --plugin-dir .`).
 
 Nothing upstream owns this integration: TypeSafe's own "Jev with coding agents" page says Jev is not
 a coding-agent model. TypeSafe documents its API at docs.typesafe.ai/api; OpenRouter's

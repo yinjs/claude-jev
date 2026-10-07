@@ -2,8 +2,9 @@
 
 User-facing docs are in README.md. This file holds what you would get wrong working on the code.
 
-The same Jev integration exists for pi (`yinjs/pi-jev`) and Hermes (`yinjs/hermes-jev`). A change to a
-question's wording, a threshold, or what gets scanned belongs in those repos too, or the agents drift.
+The author keeps the same Jev integration for pi and Hermes in private repos (`yinjs/pi-jev`,
+`yinjs/hermes-jev`). A change to a question's wording, a threshold, or what gets scanned belongs in
+those too, or the agents drift.
 
 ## Test
 
