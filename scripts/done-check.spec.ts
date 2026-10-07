@@ -2,7 +2,7 @@ import { expect, test } from "bun:test"
 import { mkdtempSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { timeline } from "./done-check"
+import { shellEdits, timeline } from "./done-check"
 
 function transcript(rows: unknown[]): string {
   const path = join(mkdtempSync(join(tmpdir(), "done-check-")), "t.jsonl")
@@ -52,4 +52,11 @@ test("a prompt sent as text parts also starts a new turn", () => {
 test("a missing transcript reads as no edits", () => {
   expect(timeline("/nonexistent/t.jsonl")).toEqual({ entries: [], edited: false })
   expect(timeline(undefined)).toEqual({ entries: [], edited: false })
+})
+
+test("in-place shell edits count as edits; reads and checks do not", () => {
+  for (const command of ["sed -i '' 's/a/b/' x.ts", "perl -pi -e 's/a/b/' x.ts", "echo hi > out.txt", "cat <<'EOF' >> notes.md", "echo x | tee log"])
+    expect(shellEdits(command), command).toBe(true)
+  for (const command of ["sed -n '1,5p' x.ts", "bun test 2>/dev/null", "ls > /dev/null", "bun -e 'x => x'", "cmd 2>&1"])
+    expect(shellEdits(command), command).toBe(false)
 })

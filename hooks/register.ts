@@ -163,5 +163,5 @@ export function register(on: On) {
     const r = await next({ ...e, model: decision.agent })
     if ('model' in r) $.ui.log('jev-route: subagent "' + e.description + '" on ' + r.model)
     return r
-  })
+  }).catch(($, e, next) => next(e)) // routing never costs the spawn: before next, spawn as asked; after, next(e) replays that result
 }

@@ -30,6 +30,11 @@ const QUESTIONS = {
 
 type Entry = { tool: "edit" | "command"; detail: string; is_error?: boolean }
 
+// ponytail: in-place sed/perl, tee, and redirects into a file; an edit hidden behind a script it runs
+// is missed. Parse the shell if that gap shows up in the log.
+const SHELL_EDIT = /\b(sed|perl)\b[^|;&]*\s-[a-zA-Z]*i|\btee\b|(^|[^\d&>=-])>>?\s*(?!&|\/dev\/null)[\w.~\/"'-]/
+export const shellEdits = (command: string) => SHELL_EDIT.test(command)
+
 // Edits and Bash commands from the current turn (since the last real user message).
 export function timeline(path?: string): { entries: Entry[]; edited: boolean } {
   if (!path) return { entries: [], edited: false }
@@ -65,7 +70,10 @@ export function timeline(path?: string): { entries: Entry[]; edited: boolean } {
         const inp = part.input ?? {}
         let e: Entry | undefined
         if (/^(Edit|Write|MultiEdit|NotebookEdit)$/.test(name)) e = { tool: "edit", detail: String(inp.file_path ?? "").slice(0, 200) }
-        else if (name === "Bash") e = { tool: "command", detail: String(inp.command ?? "").slice(0, 300) }
+        else if (name === "Bash") {
+          const command = String(inp.command ?? "")
+          e = { tool: shellEdits(command) ? "edit" : "command", detail: command.slice(0, 300) }
+        }
         if (e) {
           entries.push(e)
           byId.set(part.id, e)
@@ -97,12 +105,8 @@ async function main() {
   if (pUnfinished !== undefined && pUnfinished >= 0.85)
     reasons.push("your answer reads as done but mentions or implies unfinished parts (stubs, TODOs, skipped steps). Finish them, or say plainly what is left and why")
   if (!reasons.length) return
-  emit({
-    hookSpecificOutput: {
-      hookEventName: "Stop",
-      additionalContext: "[jev done-check] Before finishing: " + reasons.join("; and ") + ".",
-    },
-  })
+  // Only a block continues the turn; additionalContext on Stop is shown as feedback and Claude stops anyway.
+  emit({ decision: "block", reason: "[jev done-check] Before finishing: " + reasons.join("; and ") + "." })
 }
 
 if (import.meta.main) main().catch((e) => log("crash", { hook: "done-check", error: String(e) }))
