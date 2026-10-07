@@ -103,24 +103,11 @@ own model answered — so the module pins `claude-{sonnet,opus}-5-5`, or what
 
 ## Development
 
-- `claude plugin validate .` lists the module's hooks and calls (not the event hooks in
-  `hooks/hooks.json`).
-- `claude plugin test` runs every `*.test.ts` under the plugin with no session or network, and fails
-  to load any file that imports `bun:test`. So the scripts' Bun tests are named `*.spec.ts`;
-  `bun test scripts/` runs them. `budget.spec.ts` keeps each script's Jev budget under its hook's
-  timeout: a hook Claude Code kills loses its decision outright.
-- `scripts/contract.ts` is the stdin/stdout contract between `turn.ts` and the module. It imports
-  nothing, because a module may load only its own files and `claude-code`.
-- Each load writes `.claude-plugin/types/` (gitignored by its own `.gitignore`) for the running
-  Claude Code version — trust it over the docs.
-- Live check without spending a turn: `claude -p /jev-route`. With one,
-  `claude -p … --output-format json` reports the model that actually answered under `modelUsage`.
+How to test and change the plugin is in [CLAUDE.md](CLAUDE.md), which Claude Code loads too.
 
 Nothing upstream owns this integration: TypeSafe's own "Jev with coding agents" page says Jev is not
 a coding-agent model. TypeSafe documents its API at docs.typesafe.ai/api; OpenRouter's
-`alpha/decisions` endpoint is, as its path says, alpha and can change. Read `jev-1.13`'s published jaggedness notes before
-retuning a threshold: context rot (mode 5) is why every hook clips what it sends, and "state is not
-treated as hostile" is why the injection hook's verdict is a warning, never a guarantee.
+`alpha/decisions` endpoint is, as its path says, alpha and can change.
 
 ## License
 

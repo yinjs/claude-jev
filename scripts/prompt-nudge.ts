@@ -43,7 +43,7 @@ async function main() {
   if (large !== undefined && large >= 0.85)
     note = `Jev, the classifier these hooks call, rates this request p=${large.toFixed(2)} a large or risky ` +
       "multi-step change. For changes of that size this setup expects a short plan, and the user's " +
-      "confirmation of its key decisions, before any edit (the grill-me approach fits)."
+      "confirmation of its key decisions, before any edit."
   else if (vague !== undefined && vague >= 0.9)
     note = `Jev, the classifier these hooks call, rates this request p=${vague.toFixed(2)} as naming no ` +
       "concrete thing to change and no concrete result. For requests like that this setup expects 1-3 " +
