@@ -60,7 +60,9 @@ export function summarize(lines: string[], sinceMs: number): string {
   if (turns.length) {
     out.push(`turn effort asked: ${show(count(turns, (e) => e.effort?.choice))}`)
     out.push(`turn tier asked: ${show(count(turns, (e) => e.tier?.choice))}`)
-    out.push(`turn applied: ${show(count(turns, (e) => Object.keys(e.applied ?? {}).join("+") || "nothing"))}`)
+    const answered = turns.filter((e) => !e.applied?.failed)
+    out.push(`turn jev gave no answer: ${turns.length - answered.length}`)
+    out.push(`turn applied: ${show(count(answered, (e) => Object.keys(e.applied ?? {}).join("+") || "nothing"))}`)
   }
 
   out.push("", "probability buckets (the bars sit at 0.8-0.9: the middle two buckets are the near misses)")

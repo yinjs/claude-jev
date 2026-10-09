@@ -12,6 +12,8 @@ test("counts results and buckets probabilities", () => {
       line({ feature: "permission", tool: "WebFetch", read_only: 0.3, result: "prompt" }),
       line({ feature: "injection", tool: "WebFetch", p: 0.82 }),
       line({ feature: "error", error: "timeout" }),
+      line({ feature: "turn", effort: { choice: "low", conf: 0.9 }, applied: { effort: "low" } }),
+      line({ feature: "turn", applied: { failed: "no response from Jev" } }),
       "not json",
     ],
     now - 7 * 86_400_000,
@@ -20,6 +22,8 @@ test("counts results and buckets probabilities", () => {
   expect(out).toContain("permission.safe n=2: >=0.9 1, 0.8-0.9 1, 0.5-0.8 0, <0.5 0")
   expect(out).toContain("injection.p n=1: >=0.9 0, 0.8-0.9 1")
   expect(out).toContain("failures: 1")
+  expect(out).toContain("turn jev gave no answer: 1")
+  expect(out).toContain("turn applied: effort 1")
 })
 
 test("drops entries before the window and reports an empty log", () => {
