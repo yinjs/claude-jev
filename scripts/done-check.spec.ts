@@ -60,3 +60,16 @@ test("in-place shell edits count as edits; reads and checks do not", () => {
   for (const command of ["sed -n '1,5p' x.ts", "bun test 2>/dev/null", "ls > /dev/null", "bun -e 'x => x'", "cmd 2>&1"])
     expect(shellEdits(command), command).toBe(false)
 })
+
+test("a `>` inside quotes or a heredoc body is not a redirect", () => {
+  const trailer = 'git commit -m "feat: x\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nClaude-Session: https://example.com"'
+  const heredocCommit = "git commit -F - <<'EOF'\nfeat: x\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nSession: s\nEOF"
+  const analysis = "python3 - <<'EOF'\nif a > b:\n    print(a)\nEOF"
+  for (const command of [trailer, heredocCommit, analysis, `A='x <y>\nz' && git commit -m "$A"`])
+    expect(shellEdits(command), command).toBe(false)
+})
+
+test("a redirect stays an edit when quotes or a heredoc surround it", () => {
+  for (const command of ['echo "hi" > "my file.txt"', "cat > notes.md <<'EOF'\nbody > text\nEOF", `echo '<a>' >> log.txt`])
+    expect(shellEdits(command), command).toBe(true)
+})

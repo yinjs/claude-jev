@@ -33,7 +33,13 @@ type Entry = { tool: "edit" | "command"; detail: string; is_error?: boolean }
 // ponytail: in-place sed/perl, tee, and redirects into a file; an edit hidden behind a script it runs
 // is missed. Parse the shell if that gap shows up in the log.
 const SHELL_EDIT = /\b(sed|perl)\b[^|;&]*\s-[a-zA-Z]*i|\btee\b|(^|[^\d&>=-])>>?\s*(?!&|\/dev\/null)[\w.~\/"'-]/
-export const shellEdits = (command: string) => SHELL_EDIT.test(command)
+// Heredoc bodies and quoted text (a commit message's `<email>`, a `x => x` argument) hold `>` that is not
+// a redirect, so blank them out first. A quoted redirect target survives as `""`, which still matches.
+const HEREDOC_BODY = /(<<-?\s*(['"]?)(\w+)\2[^\n]*)\n[\s\S]*?\n\s*\3(?=\n|$)/g
+const QUOTED = /'[^']*'|"(?:[^"\\]|\\.)*"/g
+const withoutLiterals = (command: string) =>
+  command.replace(HEREDOC_BODY, "$1").replace(QUOTED, (quoted) => quoted[0]! + quoted[0]!)
+export const shellEdits = (command: string) => SHELL_EDIT.test(withoutLiterals(command))
 
 // Edits and Bash commands from the current turn (since the last real user message).
 export function timeline(path?: string): { entries: Entry[]; edited: boolean } {
