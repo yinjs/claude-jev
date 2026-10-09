@@ -130,6 +130,13 @@ last turn's routing and what Jev said: its answer, `gave no answer` (unsure), `f
 own model answered — so the module pins `claude-{sonnet,opus}-5-5`, or what
 `ANTHROPIC_DEFAULT_{SONNET,OPUS}_MODEL` names. Bump those ids when the aliases move.
 
+## jev-stats: tune the bars from data
+
+`/jev-stats [days]` (default 7) summarizes `~/.cache/claude-jev/decisions.log` and its rotated
+`.1` file: entries per hook, permission results, the effort and tier Jev picked, failures, and how
+many of each probability fall in `>=0.9`, `0.8-0.9`, `0.5-0.8` and `<0.5`. The bars sit at 0.8-0.9,
+so the middle buckets show how many calls a small retune would flip.
+
 ## Development
 
 How to test and change the plugin is in [CLAUDE.md](CLAUDE.md), which Claude Code loads too.

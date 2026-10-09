@@ -24,7 +24,7 @@ export function provider(env: Record<string, string | undefined>) {
 
 const PROVIDER = provider(process.env)
 const LOG_DIR = join(homedir(), ".cache", "claude-jev")
-const LOG_FILE = join(LOG_DIR, "decisions.log")
+export const LOG_FILE = join(LOG_DIR, "decisions.log")
 const LOG_MAX_BYTES = 1 << 20
 
 export type Question =

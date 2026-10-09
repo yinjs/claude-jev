@@ -67,6 +67,10 @@ export function register(on: On) {
       name: 'jev-route',
       description: 'Show what jev-route last decided; /jev-route off or on toggles it for this session',
     })
+    await $.command.register({
+      name: 'jev-stats',
+      description: 'Summarize the hook decision log: results, probability buckets near the bars, failures. Optional days (default 7)',
+    })
     return next(e)
   })
 
@@ -85,6 +89,15 @@ export function register(on: On) {
       return { text: off ? 'off for this session; the session model is no longer pinned' : 'on for this session' }
     }
     return { text: (off ? '[off] ' : '') + last + (pin ? ' · pinned ' + pin.model : '') }
+  })
+
+  on('command.run', { command: 'jev-stats' }, async ($, e) => {
+    try {
+      const r = await $.process.run(['bun', $.plugin.root + '/scripts/stats.ts', (e.args ?? '').trim()], { timeoutMs: 5000 })
+      return { text: r.exitCode === 0 ? r.stdout.trim() : 'jev-stats failed: exit ' + r.exitCode }
+    } catch (err) {
+      return { text: 'jev-stats failed: ' + String(err) }
+    }
   })
 
   // Ask at the start of the turn without waiting: the answer is awaited at the turn's first request,
