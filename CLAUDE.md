@@ -2,10 +2,6 @@
 
 User-facing docs are in README.md. This file holds what you would get wrong working on the code.
 
-The author keeps the same Jev integration for pi and Hermes in private repos (`yinjs/pi-jev`,
-`yinjs/hermes-jev`). A change to a question's wording, a threshold, or what gets scanned belongs in
-those too, or the agents drift.
-
 ## Test
 
 - `bun test scripts/` runs the hook scripts' tests; `claude plugin test` runs `tests/*.test.ts` against
