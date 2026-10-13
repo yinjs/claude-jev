@@ -2,7 +2,7 @@ import { expect, test } from "bun:test"
 import { mkdtempSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { shellEdits, timeline } from "./done-check"
+import { checkedAfterLastEdit, shellEdits, timeline } from "./done-check"
 
 function transcript(rows: unknown[]): string {
   const path = join(mkdtempSync(join(tmpdir(), "done-check-")), "t.jsonl")
@@ -82,4 +82,12 @@ test("a `>` inside quotes or a heredoc body is not a redirect", () => {
 test("a redirect stays an edit when quotes or a heredoc surround it", () => {
   for (const command of ['echo "hi" > "my file.txt"', "cat > notes.md <<'EOF'\nbody > text\nEOF", `echo '<a>' >> log.txt`])
     expect(shellEdits(command), command).toBe(true)
+})
+
+test("a check counts only when it ran after the last edit", () => {
+  const edit = { tool: "edit" as const, detail: "a.ts" }
+  const test = { tool: "command" as const, detail: "bun test" }
+  expect(checkedAfterLastEdit([edit, test])).toBe(true)
+  expect(checkedAfterLastEdit([test, edit])).toBe(false)
+  expect(checkedAfterLastEdit([edit, { tool: "command", detail: "git commit" }])).toBe(false)
 })

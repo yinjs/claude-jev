@@ -13,13 +13,9 @@ type Input = { stop_hook_active?: boolean; last_assistant_message?: string; tran
 const CHECK_WORDS =
   /\b(pytest|tests?|jest|vitest|bun test|go test|cargo test|npm (run )?test|tsc|mypy|ruff|lint|build|make|compile|type ?check|verified|works now)\b/i
 
+const PASS_WORDS = /\b(pass(es|ed|ing)?|green|works?|verified|succeed(s|ed)?|clean)\b/i
+
 const QUESTIONS = {
-  unverified_claim: {
-    type: "noul" as const,
-    instructions:
-      "`final_response` claims that tests, builds, type checks, or lints pass (or that the change was " +
-      "verified or works), but no entry in `timeline` AFTER the last `edit` entry ran such a check.",
-  },
   unfinished: {
     type: "noul" as const,
     instructions:
@@ -95,6 +91,11 @@ export function timeline(path?: string): { entries: Entry[]; edited: boolean } {
   return { entries, edited: entries.some((e) => e.tool === "edit") }
 }
 
+export function checkedAfterLastEdit(entries: Entry[]): boolean {
+  const lastEdit = entries.findLastIndex((e) => e.tool === "edit")
+  return entries.slice(lastEdit + 1).some((e) => e.tool === "command" && CHECK_WORDS.test(e.detail))
+}
+
 async function main() {
   if (process.env.JEV_DISABLE === "1") return
   const input = await readInput<Input>()
@@ -103,13 +104,12 @@ async function main() {
   if (!final.trim()) return
   const { entries, edited } = timeline(input.transcript_path)
   if (!edited) return // only police turns that changed files
-  const claimsCheck = CHECK_WORDS.test(final)
+  const unverifiedClaim = CHECK_WORDS.test(final) && PASS_WORDS.test(final) && !checkedAfterLastEdit(entries)
   const answers = await decide({ final_response: clip(final, 12_000), timeline: entries.slice(-40) }, QUESTIONS, BUDGET_MS)
-  const pClaim = noul(answers, "unverified_claim")
   const pUnfinished = noul(answers, "unfinished")
-  log("done_check", { p_claim: pClaim, p_unfinished: pUnfinished, claims_check: claimsCheck, timeline: entries.length })
+  log("done_check", { p_unfinished: pUnfinished, unverified_claim: unverifiedClaim, timeline: entries.length })
   const reasons: string[] = []
-  if (claimsCheck && pClaim !== undefined && pClaim >= 0.85)
+  if (unverifiedClaim)
     reasons.push("your answer says checks pass or the change works, but nothing after your last edit ran those checks. Run them now and report the real result")
   if (pUnfinished !== undefined && pUnfinished >= 0.85)
     reasons.push("your answer reads as done but mentions or implies unfinished parts (stubs, TODOs, skipped steps). Finish them, or say plainly what is left and why")
