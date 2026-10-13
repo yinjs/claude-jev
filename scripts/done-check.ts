@@ -79,6 +79,9 @@ export function timeline(path?: string): { entries: Entry[]; edited: boolean } {
         else if (name === "Bash") {
           const command = String(inp.command ?? "")
           e = { tool: shellEdits(command) ? "edit" : "command", detail: command.slice(0, 300) }
+        } else if (/^mcp__.*execute$/.test(name)) {
+          // Sandbox tools (context-mode) run the user's checks instead of Bash; whether they edit is not parsed.
+          e = { tool: "command", detail: JSON.stringify(inp.code ?? inp.command ?? inp.commands ?? "").slice(0, 300) }
         }
         if (e) {
           entries.push(e)

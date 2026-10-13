@@ -49,6 +49,16 @@ test("a prompt sent as text parts also starts a new turn", () => {
   expect(timeline(path)).toEqual({ entries: [{ tool: "command", detail: "ls" }], edited: false })
 })
 
+test("sandbox execute tools count as commands", () => {
+  const path = transcript([
+    prompt("go"),
+    use("a", "Edit", { file_path: "x.ts" }),
+    use("b", "mcp__plugin_context-mode_context-mode__ctx_execute", { language: "shell", code: "bun test" }),
+    use("c", "mcp__plugin_context-mode_context-mode__ctx_batch_execute", { commands: [{ label: "t", command: "tsc" }] }),
+  ])
+  expect(timeline(path).entries.map((e) => e.tool)).toEqual(["edit", "command", "command"])
+})
+
 test("a missing transcript reads as no edits", () => {
   expect(timeline("/nonexistent/t.jsonl")).toEqual({ entries: [], edited: false })
   expect(timeline(undefined)).toEqual({ entries: [], edited: false })
