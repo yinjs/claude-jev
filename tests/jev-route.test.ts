@@ -1,8 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
 // Stubs every call the module makes; `jev` is what turn.ts would print, `rows` the transcript.
-function stubs(on: any, jev: Record<string, string> | 'fail', rows: unknown[] = [], seen: { stdin?: string[]; steps?: any[]; spawns?: any[] } = {}, env: Record<string, string> = {}) {
-  on('env.get', ($: any, e: any) => ({ value: env[e.name as string] }))
+function stubs(on: any, jev: Record<string, string> | 'fail', rows: unknown[] = [], seen: { stdin?: string[]; steps?: any[]; spawns?: any[] } = {}) {
   on('session.messages', () => ({ value: rows }))
   on('ui.log', () => ({ value: undefined }))
   on('command.register', () => ({ value: undefined }))
@@ -49,37 +48,12 @@ test('leaves effort alone where a change would rebuild the cache', async ($, on)
   expect(seen.steps![0].effort).toBe('high')
 })
 
-test('pins the session model once, holds it, and yields to /model', async ($, on) => {
-  const seen = stubs(on, { tier: 'sonnet', effort: 'medium' })
-  await $.turn.start({ turnId: 't1', text: 'add a unit test for parseDate' })
-  await step($, { turnId: 't1', model: OPUS, effort: 'high' })
-  // Every request of a later turn stays on the pinned model.
-  await $.turn.start({ turnId: 't2', text: 'now also cover leap years' })
-  await step($, { turnId: 't2', model: OPUS, effort: 'high', index: 0 })
-  await step($, { turnId: 't2', model: OPUS, effort: 'high', index: 1 })
-  // The user switched with /model: the session model changed under the pin.
-  await $.turn.start({ turnId: 't3', text: 'explain the failure in detail' })
-  await step($, { turnId: 't3', model: 'claude-fable-5-1', effort: 'high' })
-  expect(seen.steps!.map((s: any) => s.model)).toEqual(['claude-sonnet-5-5', 'claude-sonnet-5-5', 'claude-sonnet-5-5', 'claude-fable-5-1'])
-  // Sonnet 5.5 was measured to rebuild its cache on an effort change, so a pinned Sonnet keeps it.
-  expect(seen.steps!.map((s: any) => s.effort)).toEqual(['high', 'high', 'high', 'high'])
-})
-
-test('stops asking about effort once the pin is a model that cannot use it', async ($, on) => {
-  const seen = stubs(on, { tier: 'sonnet', effort: 'low' })
-  await $.turn.start({ turnId: 't1', text: 'add a unit test for parseDate' })
-  await step($, { turnId: 't1', model: OPUS, effort: 'high' })
-  await $.turn.start({ turnId: 't2', text: 'now also cover leap years' })
-  await step($, { turnId: 't2', model: OPUS, effort: 'high' })
-  expect(seen.stdin).toHaveLength(1)
-})
-
 test('/jev-route says whether Jev answered, even when nothing changed', async ($, on) => {
   stubs(on, {})
   await $.turn.start({ turnId: 't1', text: 'add a unit test for parseDate' })
   await step($, { turnId: 't1', model: OPUS, effort: 'high' })
   expect((await $.command.run({ command: 'jev-route', args: '' } as any)).text).toBe(
-    'session model and effort kept · jev gave no answer',
+    'session effort kept · jev gave no answer',
   )
 })
 
@@ -96,36 +70,20 @@ test('/jev-route names a failure turn.ts reports, and changes nothing', async ($
   await step($, { turnId: 't1', model: OPUS, effort: 'high' })
   expect(seen.steps![0]).toMatchObject({ model: OPUS, effort: 'high' })
   expect((await $.command.run({ command: 'jev-route', args: '' } as any)).text).toBe(
-    'session model and effort kept · jev failed: no response from Jev',
+    'session effort kept · jev failed: no response from Jev',
   )
 })
 
-test('pins the id ANTHROPIC_DEFAULT_SONNET_MODEL names, as the alias would', async ($, on) => {
-  const seen = stubs(on, { tier: 'sonnet' }, [], {}, { ANTHROPIC_DEFAULT_SONNET_MODEL: 'claude-sonnet-4-6' })
-  await $.turn.start({ turnId: 't1', text: 'add a unit test for parseDate' })
-  await step($, { turnId: 't1', model: OPUS, effort: 'high' })
-  expect(seen.steps![0].model).toBe('claude-sonnet-4-6')
-})
-
-test('does not pin when the session already runs the picked tier', async ($, on) => {
-  const seen = stubs(on, { tier: 'opus' })
-  await $.turn.start({ turnId: 't1', text: 'redesign the auth flow across services' })
-  await step($, { turnId: 't1', model: OPUS, effort: 'high' })
-  expect(seen.steps![0].model).toBe(OPUS)
-})
-
-test('stops asking for a session model once the conversation is long', async ($, on) => {
-  const rows = Array.from({ length: 9 }, (_, i) => ({ role: i % 2 ? 'assistant' : 'user', text: 'm' + i, toolUses: [] }))
-  const seen = stubs(on, { tier: 'sonnet' }, rows)
+test('asks only about effort, with the last assistant message as context', async ($, on) => {
+  const rows = [{ role: 'user', text: 'q', toolUses: [] }, { role: 'assistant', text: 'a', toolUses: [] }]
+  const seen = stubs(on, {}, rows)
   await $.turn.start({ turnId: 't1', text: 'continue with the refactor' })
   await step($, { turnId: 't1', model: OPUS, effort: 'high' })
-  expect(JSON.parse(seen.stdin![0]!).want).toEqual(['effort'])
-  expect(JSON.parse(seen.stdin![0]!).previous).toBe('m7')
-  expect(seen.steps![0].model).toBe(OPUS)
+  expect(JSON.parse(seen.stdin![0]!)).toMatchObject({ want: ['effort'], previous: 'a' })
 })
 
 test('a subagent loop is never rerouted', async ($, on) => {
-  const seen = stubs(on, { tier: 'sonnet', effort: 'low' })
+  const seen = stubs(on, { effort: 'low' })
   await $.turn.start({ turnId: 't1', text: 'find all lodash imports' })
   await step($, { turnId: 't1', model: OPUS, effort: 'high', agentId: 'a1' })
   expect(seen.steps![0]).toMatchObject({ model: OPUS, effort: 'high' })
@@ -139,7 +97,7 @@ test('a Jev failure changes nothing', async ($, on) => {
 })
 
 test('/jev-route off stops routing for the session', async ($, on) => {
-  const seen = stubs(on, { tier: 'sonnet', effort: 'low' })
+  const seen = stubs(on, { effort: 'low' })
   const reply = await $.command.run({ command: 'jev-route', args: 'off' } as any)
   expect(reply.text).toMatch(/^off/)
   await $.turn.start({ turnId: 't1', text: 'add a unit test for parseDate' })

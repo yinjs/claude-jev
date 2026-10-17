@@ -29,8 +29,8 @@ Read these before letting the permission hook approve commands for you.
   They are not a guarantee; a command Jev misjudges is run without asking.
 - The injection warning is advice to Claude, never a block, and only the head and tail of a long
   result (12k characters) are examined.
-- jev-route pins `claude-{sonnet,opus}-5-5`. When newer models ship, set
-  `ANTHROPIC_DEFAULT_{SONNET,OPUS}_MODEL` or wait for a release that bumps the ids.
+- jev-route routes effort only on `CACHE_SAFE_EFFORT` models (`hooks/register.ts`); a newer model
+  gets effort routing after the cache measurement described below.
 
 Use it at your own risk (see [LICENSE](LICENSE)). Report a security problem through a
 [private advisory](https://github.com/yinjs/claude-jev/security/advisories/new), not a public issue.
@@ -93,7 +93,6 @@ about $0.0002, and a day of heavy use, a few hundred calls, costs a few cents.
 | `JEV_MODEL` | per provider | The model id sent. |
 | `JEV_API_KEY` | unset | The key, for any provider. |
 | `JEV_APPROVE_AT` / `JEV_DENY_AT` | `0.9` | The permission hook's allow and deny bars. |
-| `ANTHROPIC_DEFAULT_{SONNET,OPUS}_MODEL` | `claude-{sonnet,opus}-5-5` | The ids the session model is pinned to. |
 
 Log: `~/.cache/claude-jev/decisions.log`, rotated to `.1` past 1 MiB, long fields clipped to 500
 chars. It records the Bash commands the permission hook judged, so it is 0600 in a 0700 directory.
@@ -107,33 +106,29 @@ answer from a turn that edited files — all to the configured provider. codegra
 matcher by a negative lookahead: it returns the machine's own source, it is the highest-volume MCP
 server, and it is the least likely to carry a third-party injection.
 
-## jev-route: effort and model routing
+## jev-route: effort and subagent-model routing
 
 A settings hook cannot change the model: its outputs allow, deny, or add context. A mod can rewrite
 each request to the model (`turn.step`) and each subagent spawn (`agent.spawn`). `hooks/register.ts`
 uses that, through `scripts/turn.ts`, under one constraint: **each model has its own prompt cache, and
-switching re-reads the whole conversation uncached** (prompt-caching docs). Per-turn model routing
+switching re-reads the whole conversation uncached** (prompt-caching docs). Routing the main model
 would pay that on every switch, so the module never does it. It routes only where the cache costs
 nothing:
 
 | What | When | Why it is cache-free |
 |---|---|---|
 | effort (low…xhigh) | every main-conversation turn | measured on claude-opus-5-5: effort low → xhigh → low kept the cache (54k read per turn). The docs also name Sonnet 5.5 and Fable 5.1, but a pinned claude-sonnet-5-5 re-wrote 42k on one effort change, so only Opus 5.5 is routed; add a model only after the same three-turn measurement |
-| session model (sonnet or opus) | first prompt of 3+ words while the conversation is ≤8 messages, then held for every request | nothing much is cached yet; never haiku, which one cheap opener would impose on the whole session |
 | subagent model (haiku/sonnet/opus) | `general-purpose` agents with no model chosen | a subagent starts with an empty context; a named agent's or Claude's own model choice is kept |
 
-`/model` (or a fallback model) releases the pin for the rest of the session. `/jev-route` shows the
-last turn's routing and what Jev said: its answer, `gave no answer` (unsure), `failed: …`, or
-`not asked` (pinned to a model whose effort is not routed, so the call is skipped).
+The session's own model is never changed: one pick on a short conversation held every later request,
+including ones that turned hard. `/jev-route` shows the last turn's routing and what Jev said: its
+answer, `gave no answer` (unsure), `failed: …`, or `not asked` (empty prompt or slash command).
 `/jev-route off|on` toggles it until the session ends (`/clear` ends it too).
-`turn.step` needs a model id — the alias `sonnet` came back `unrecognized_model` and the session's
-own model answered — so the module pins `claude-{sonnet,opus}-5-5`, or what
-`ANTHROPIC_DEFAULT_{SONNET,OPUS}_MODEL` names. Bump those ids when the aliases move.
 
 ## jev-stats: tune the bars from data
 
 `/jev-stats [days]` (default 7) summarizes `~/.cache/claude-jev/decisions.log` and its rotated
-`.1` file: entries per hook, permission results, the effort and tier Jev picked, failures, and how
+`.1` file: entries per hook, permission results, the effort Jev picked, failures, and how
 many of each probability fall in `>=0.9`, `0.8-0.9`, `0.5-0.8` and `<0.5`. The bars sit at 0.8-0.9,
 so the middle buckets show how many calls a small retune would flip.
 

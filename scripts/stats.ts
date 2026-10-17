@@ -59,7 +59,6 @@ export function summarize(lines: string[], sinceMs: number): string {
   const turns = entries.filter((e) => e.feature === "turn")
   if (turns.length) {
     out.push(`turn effort asked: ${show(count(turns, (e) => e.effort?.choice))}`)
-    out.push(`turn tier asked: ${show(count(turns, (e) => e.tier?.choice))}`)
     const answered = turns.filter((e) => !e.applied?.failed)
     out.push(`turn jev gave no answer: ${turns.length - answered.length}`)
     out.push(`turn applied: ${show(count(answered, (e) => Object.keys(e.applied ?? {}).join("+") || "nothing"))}`)

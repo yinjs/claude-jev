@@ -1,25 +1,23 @@
 import { expect, test } from "bun:test"
 import { applied, questionsFor } from "./turn"
 
-test("asks no tier for a prompt under three words, nothing for a slash command", () => {
-  expect(questionsFor("hi there", ["effort", "tier"])).toEqual(["effort"])
-  expect(questionsFor("add a test", ["effort", "tier"])).toEqual(["effort", "tier"])
+test("asks nothing for a slash command or an undefined question", () => {
   expect(questionsFor("/jev-route off now", ["effort"])).toEqual([])
   expect(questionsFor("add a test", ["effort", "bogus"])).toEqual(["effort"])
 })
 
 test("applies only a defined choice at confidence 0.7 or above", () => {
-  const asked = ["effort", "tier", "agent"]
+  const asked = ["effort", "agent"]
   expect(
     applied(
       {
         effort: { choice: "low", confidence: 0.7 },
-        tier: { choice: "haiku", confidence: 1 },
         agent: { choice: "opus", confidence: 0.69 },
       },
       asked,
     ),
   ).toEqual({ effort: "low" })
+  expect(applied({ effort: { choice: "haiku", confidence: 1 } }, asked)).toEqual({})
   expect(applied({}, asked)).toEqual({})
 })
 

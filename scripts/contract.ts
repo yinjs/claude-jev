@@ -4,14 +4,13 @@
 // turn.ts's whole Jev call; the module allows TURN_BUDGET_MS plus bun startup and key retrieval.
 export const TURN_BUDGET_MS = 6_000
 
-export type Want = 'effort' | 'tier' | 'agent'
+export type Want = 'effort' | 'agent'
 
 export type TurnRequest = { prompt: string; previous?: string; want: Want[] }
 
 // `failed` says why Jev returned nothing, when the call failed rather than answered unsure.
 export type Decision = {
   effort?: 'low' | 'medium' | 'high' | 'xhigh'
-  tier?: 'sonnet' | 'opus'
   agent?: 'haiku' | 'sonnet' | 'opus'
   failed?: string
 }

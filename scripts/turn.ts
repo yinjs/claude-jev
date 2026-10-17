@@ -22,16 +22,6 @@ const QUESTIONS: Record<string, Question & { type: "choice" }> = {
       xhigh: "Hard: architecture, a subtle security or concurrency bug, a production incident, a long multi-step plan.",
     },
   },
-  // The session's model, picked once. No haiku: one cheap opening request would hold every later
-  // turn of the session on it, and a session usually grows past its first request.
-  tier: {
-    type: "choice",
-    instructions: `Which model should run a coding session that starts with ${SUBJECT}?`,
-    criteria: {
-      sonnet: "Typical coding: features in a few files, tests, refactors, routine debugging, questions.",
-      opus: "Hard debugging, architecture, multi-service changes, security or production-critical work.",
-    },
-  },
   // A subagent's model: it runs one task in a fresh context, so the cheap tier is safe here.
   agent: {
     type: "choice",
@@ -50,10 +40,7 @@ const ACT_AT = 0.7
 // The questions worth asking Jev about `text`; none for an empty prompt or a slash command.
 export function questionsFor(text: string, want: string[]): string[] {
   if (!text || text.startsWith("/")) return []
-  // A greeting or a bare "go" says nothing about the session it opens; leave the pick to the
-  // next prompt (measured: "hi" came back sonnet at confidence 1).
-  const words = text.split(/\s+/).length
-  return want.filter((k) => Object.hasOwn(QUESTIONS, k) && !(k === "tier" && words < 3))
+  return want.filter((k) => Object.hasOwn(QUESTIONS, k))
 }
 
 // Only a choice this file defines, at ACT_AT or above, may pass: it becomes a model or effort the
@@ -88,7 +75,7 @@ async function main() {
       return [k, a?.choice === undefined ? undefined : { choice: a.choice, conf: a.confidence ?? 0 }]
     }),
   )
-  log("turn", { ...seen, applied: out, words: text.split(/\s+/).length })
+  log("turn", { ...seen, applied: out })
   console.log(JSON.stringify(out))
 }
 
